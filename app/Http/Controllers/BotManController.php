@@ -42,17 +42,17 @@ class BotManController extends Controller
 
         $botman->middleware->captured(new PreventDoubleClicks);
 
+//        $botman->hears('/start|start', function (BotMan $bot) {
+//            $bot->reply('This is a BotMan and Laravel ' . env('APP_NAME'));
+//        })->stopsConversation();
+
         $botman->hears('/start|start', function (BotMan $bot) {
-            $bot->reply('This is a BotMan and Laravel ' . env('APP_NAME'));
+            $bot->startConversation(new AuthConversation());
         })->stopsConversation();
 
-//        $botman->hears('/start|start', function (BotMan $bot) {
-//            $bot->startConversation(new AuthConversation());
-//        })->stopsConversation();
-//
-//        $botman->hears('/boshlash|boshlash', function (BotMan $bot) {
-//            $bot->startConversation(new AuthConversation());
-//        })->stopsConversation();
+        $botman->hears('/boshlash|boshlash', function (BotMan $bot) {
+            $bot->startConversation(new AuthConversation());
+        })->stopsConversation();
 //
 //        $botman->hears('/keldim|keldim', function (BotMan $bot) {
 //            $bot->startConversation(new ComingConversation());
