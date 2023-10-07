@@ -3,9 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Conversations\AuthConversation;
-use App\Conversations\ComingConversation;
-use App\Conversations\HelpConversation;
-use App\Conversations\LeaveConversation;
 use App\Http\Middleware\PreventDoubleClicks;
 use BotMan\BotMan\BotMan;
 use BotMan\BotMan\BotManFactory;
@@ -15,6 +12,7 @@ use BotMan\Drivers\Telegram\TelegramDriver;
 use BotMan\Drivers\Telegram\TelegramFileDriver;
 use BotMan\Drivers\Telegram\TelegramLocationDriver;
 use BotMan\Drivers\Telegram\TelegramPhotoDriver;
+use BotMan\Drivers\Telegram\TelegramVideoDriver;
 
 class BotManController extends Controller
 {
@@ -24,6 +22,7 @@ class BotManController extends Controller
         DriverManager::loadDriver( TelegramLocationDriver::class );
         DriverManager::loadDriver( TelegramPhotoDriver::class );
         DriverManager::loadDriver( TelegramFileDriver::class );
+        DriverManager::loadDriver( TelegramVideoDriver::class );
 
         $config = [
             'user_cache_time' => 720,
@@ -53,18 +52,6 @@ class BotManController extends Controller
         $botman->hears('/boshlash|boshlash', function (BotMan $bot) {
             $bot->startConversation(new AuthConversation());
         })->stopsConversation();
-//
-//        $botman->hears('/keldim|keldim', function (BotMan $bot) {
-//            $bot->startConversation(new ComingConversation());
-//        })->stopsConversation();
-//
-//        $botman->hears('/ketdim|ketdim', function (BotMan $bot) {
-//            $bot->startConversation(new LeaveConversation());
-//        })->stopsConversation();
-//
-//        $botman->hears('/yordam|yordam', function (BotMan $bot) {
-//            $bot->startConversation(new HelpConversation());
-//        })->stopsConversation();
 
         $botman->listen();
     }

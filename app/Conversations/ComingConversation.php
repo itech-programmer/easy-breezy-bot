@@ -3,13 +3,21 @@
 namespace App\Conversations;
 
 use App\Models\employees\Attendances;
+use App\Models\employees\Reports;
 use App\Models\User;
+use BotMan\BotMan\BotMan;
+use BotMan\BotMan\BotManFactory;
+use BotMan\BotMan\Drivers\DriverManager;
+use BotMan\BotMan\Messages\Attachments\File;
+use BotMan\BotMan\Messages\Attachments\Image;
 use BotMan\BotMan\Messages\Attachments\Location;
 use BotMan\BotMan\Messages\Conversations\Conversation;
+use BotMan\BotMan\Messages\Incoming\Answer;
 use BotMan\BotMan\Messages\Incoming\Answer as BotManAnswer;
 use BotMan\BotMan\Messages\Outgoing\Actions\Button;
 use BotMan\BotMan\Messages\Outgoing\Question;
 use BotMan\BotMan\Messages\Outgoing\Question as BotManQuestion;
+use BotMan\Drivers\Telegram\TelegramDriver;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -18,10 +26,10 @@ class ComingConversation extends Conversation
 
     public function run()
     {
-        $this->auth();
+        $this->ask_attendance();
     }
 
-    public function auth() {
+    public function ask_attendance() {
 
         $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
 
@@ -29,82 +37,131 @@ class ComingConversation extends Conversation
         {
             $attendance = Attendances::where('employee_id', '=', $user->id)
                 ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
+
             if (empty($attendance->coming_date) and empty($attendance->coming_time)){
-                return $this->coming_attendance($user);
+
+                return $this->attendance_coming_time($user);
+
+            } elseif (empty($attendance->coming_latitude) and  empty($attendance->coming_longitude)) {
+
+                $this->askForLocation('Пожалуйста, отправьте свое местоположение', function (Location $location) {
+                    $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
+
+                    $attendance = Attendances::where('employee_id', '=', $user->id)
+                        ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
+                    $this->say($attendance);
+
+                    return $this->attendance_coming_location($attendance, $location);
+                });
+
             } else {
-                return $this->say('Вы уже прошли проверку посещаемости');
+                $this->say('Вы уже прошли проверку посещаемости');
+                return $this->ask_report();
             }
         }
         else
         {
-            return $this->say($this->bot->getUser()->getId());
+            return $this->say('Извините, вы не являетесь сотрудником');
         }
+
     }
 
-    public function coming_attendance(User $user){
+    public function attendance_coming_time(User $user){
 
         try {
 
-            DB::beginTransaction();
+            $attendance = Attendances::where('employee_id', '=', $user->id)
+                ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
 
-            $attendance = new Attendances();
-            $attendance->employee_id = $user->id;
-            $attendance->coming_date = Carbon::now()->format('Y-m-d');
-            $attendance->coming_time = Carbon::now()->format('H:i:s');
-            $attendance->save();
-            $attendance->toArray();
+            if (empty($attendance->coming_date) and empty($attendance->coming_time)){
 
-            DB::commit();
+                DB::beginTransaction();
 
-            if(!$attendance){
-                $this->say('Что то пошло не так попробуйте еще раз!');
-                return $this->coming_attendance($user);
-            }else{
+                $employee_attendance = new Attendances();
+                $employee_attendance->employee_id = $user->id;
+                $employee_attendance->coming_date = Carbon::now()->format('Y-m-d');
+                $employee_attendance->coming_time = Carbon::now()->format('H:i:s');
+                $employee_attendance->save();
+                $employee_attendance->toArray();
+
+                DB::commit();
+
+                if(!$employee_attendance){
+
+                    $this->say('Что то пошло не так попробуйте еще раз!');
+                    return $this->attendance_coming_time($user);
+
+                } else {
+
+                    $this->askForLocation('Пожалуйста, отправьте свое местоположение', function (Location $location) {
+                        $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
+
+                        $attendance = Attendances::where('employee_id', '=', $user->id)
+                            ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
+                        $this->say($attendance);
+
+                        return $this->attendance_coming_location($attendance, $location);
+                    });
+
+                }
+
+            } else {
+
                 $this->askForLocation('Пожалуйста, отправьте свое местоположение', function (Location $location) {
                     $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
+
                     $attendance = Attendances::where('employee_id', '=', $user->id)
                         ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
                     $this->say($attendance);
-                    return $this->set_location($attendance, $location);
+
+                    return $this->attendance_coming_location($attendance, $location);
                 });
+
             }
 
         } catch (\Exception $e) {
-
-            $this->say($e->getMessage());
+            return $this->say($e->getMessage());
         }
+
     }
 
-    public function set_location(Attendances $attendance, Location $location){
+    public function attendance_coming_location(Attendances $attendance, Location $location){
 
         try {
 
-            DB::beginTransaction();
+            if (empty($attendance->coming_latitude) and empty($attendance->coming_longitude)) {
 
-            $attendance = Attendances::find($attendance->id);
-            $attendance->coming_latitude = $location->getLatitude();
-            $attendance->coming_longitude = $location->getLongitude();
-            $attendance->save();
-            $attendance->toArray();
+                DB::beginTransaction();
 
-            DB::commit();
+                $attendance_location = Attendances::find($attendance->id);
+                $attendance_location->coming_latitude = $location->getLatitude();
+                $attendance_location->coming_longitude = $location->getLongitude();
+                $attendance_location->save();
+                $attendance_location->toArray();
 
-            if(empty($attendance->coming_latitude) and empty($attendance->coming_longitude)){
-                $this->askForLocation('Что то пошло не так, отправьте свое местоположение еще раз!', function (Location $location) {
-                    $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
-                    $attendance = Attendances::where('employee_id', '=', $user->id)
-                        ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
-                    return $this->set_location($attendance, $location);
-                });
-            }else{
-//                return $this->ask_report();
+                DB::commit();
+
+                if(!$attendance_location){
+
+                    $this->say('Что то пошло не так попробуйте еще раз!');
+                    return $this->attendance_coming_location($attendance_location, $location);
+
+                } else {
+
+                        return $this->ask_report();
+                }
+
+            } else {
+
+                return $this->ask_report();
+
             }
 
+
         } catch (\Exception $e) {
-
             $this->say($e->getMessage());
-
         }
+
     }
 
     public function ask_report(){
@@ -119,13 +176,13 @@ class ComingConversation extends Conversation
 
         $this->ask($question, function (BotManAnswer $answer) {
             switch ($answer->getValue()) {
+
                 case 'foto':
 
-                    $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
-                    $attendance = Attendances::where('employee_id', '=', $user->id)
-                        ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
+                        return $this->ask_photo();
 
-                    return $this->set_photo_before($attendance);
+                    break;
+
                 case 'video':
 
                     $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
@@ -133,28 +190,64 @@ class ComingConversation extends Conversation
                         ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
 
                     return $this->set_video_before($attendance);
+
                 default:
+
                     return $this->ask_report();
+
             }
         });
     }
 
-//    public function set_photo_before(Attendances $attendance){
+    public function ask_photo()
+    {
 
-//        $this->askForImages('Пожалуйста, отправьте фотоотчет!', function ($images) {
-//            $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
-//
-//        });
+        $this->askForImages('Пожалуйста, пришлите фото отчет до', function ($images) {
 
-//        return $this->set_photo_before($attendance);
-//    }
+            foreach ($images as $image) {
 
-//    public function set_video_before(Attendances $attendance){
-//        $this->askForVideos('Пожалуйста, отправьте видеоотчет!', function ($videos) {
-//        $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
-//
-//        });
+                $url = $image->getUrl(); // The direct url
 
-//        return $this->set_video_before($attendance);
-//    }
+                $this->say($url);
+
+                $this->say('receivesImages payload:' . $this->bot->getMessage()->getImages());
+
+//                try {
+
+                    $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
+                    $attendance = Attendances::where('employee_id', '=', $user->id)
+                        ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
+
+                    DB::beginTransaction();
+
+                    $image_report = new Reports();
+                    $image_report->attendance_id = $attendance->id;
+                    $image_report->file_url = $image->getUrl(); // The direct url
+                    $image_report->type = 'before';
+                    $image_report->save();
+                    $image_report->toArray();
+
+                    DB::commit();
+
+                    if(!$image_report){
+
+                        $this->say('Что то пошло не так попробуйте еще раз!');
+                        return $this->ask_photo();
+
+                    } else {
+
+                        return $this->say('Все фото отчеты до сохранены');
+                    }
+//                } catch (\Exception $e) {
+//                    return $this->say($e->getMessage());
+//                }
+
+            }
+
+        }, function (Answer $answer) {
+            $this->say('Пожалуйста, пришлите фото отчет до');
+            $this->ask_photo();
+        });
+    }
+
 }
