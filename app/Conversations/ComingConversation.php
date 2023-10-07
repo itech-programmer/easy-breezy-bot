@@ -3,7 +3,7 @@
 namespace App\Conversations;
 
 use App\Models\employees\Attendances;
-use App\Models\employees\Reports;
+use App\Models\employees\AttendanceReports;
 use App\Models\User;
 use BotMan\BotMan\BotMan;
 use BotMan\BotMan\BotManFactory;
@@ -210,9 +210,9 @@ class ComingConversation extends Conversation
 
                 $this->say($url);
 
-                $this->say('receivesImages payload:' . $this->bot->getMessage()->getImages());
+                $this->say('Receives images payload:' . $this->bot->getMessage()->getImages());
 
-//                try {
+                try {
 
                     $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
                     $attendance = Attendances::where('employee_id', '=', $user->id)
@@ -220,7 +220,7 @@ class ComingConversation extends Conversation
 
                     DB::beginTransaction();
 
-                    $image_report = new Reports();
+                    $image_report = new AttendanceReports();
                     $image_report->attendance_id = $attendance->id;
                     $image_report->file_url = $image->getUrl(); // The direct url
                     $image_report->type = 'before';
@@ -238,9 +238,9 @@ class ComingConversation extends Conversation
 
                         return $this->say('Все фото отчеты до сохранены');
                     }
-//                } catch (\Exception $e) {
-//                    return $this->say($e->getMessage());
-//                }
+                } catch (\Exception $e) {
+                    return $this->say($e->getMessage());
+                }
 
             }
 
