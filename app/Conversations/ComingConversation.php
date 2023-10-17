@@ -217,7 +217,7 @@ class ComingConversation extends Conversation
 
                 $url = $image->getUrl(); // The direct url
 
-                $this->say(1 . ' - ' . 'Ссылки на ваши изображения: ' . $url, $user->telegram_id, );
+                $this->say(1 . ' - ' . 'Ссылки на ваши изображения: ' . $url);
 
                 $image_report->file_url = $image->getUrl(); // The direct url
                 $image_report->type = 'before';
