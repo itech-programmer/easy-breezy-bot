@@ -206,42 +206,27 @@ class ComingConversation extends Conversation
 
             foreach ($images as $image) {
 
+                $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
+                $attendance = Attendances::where('employee_id', '=', $user->id)
+                    ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
+
+                DB::beginTransaction();
+
+                $image_report = new AttendanceReports();
+                $image_report->attendance_id = $attendance->id;
+
                 $url = $image->getUrl(); // The direct url
 
-                $this->say($url);
+                $this->say(1 . ' - ' . 'Ссылки на ваши изображения: ' . $url, $user->telegram_id, );
 
-                $this->say('Receives images payload:' . $this->bot->getMessage()->getImages());
+                $image_report->file_url = $image->getUrl(); // The direct url
+                $image_report->type = 'before';
+                $image_report->save();
+                $image_report->toArray();
 
-                try {
+                DB::commit();
 
-                    $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
-                    $attendance = Attendances::where('employee_id', '=', $user->id)
-                        ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
-
-                    DB::beginTransaction();
-
-                    $image_report = new AttendanceReports();
-                    $image_report->attendance_id = $attendance->id;
-                    $image_report->file_url = $image->getUrl(); // The direct url
-                    $image_report->type = 'before';
-                    $image_report->save();
-                    $image_report->toArray();
-
-                    DB::commit();
-
-                    if(!$image_report){
-
-                        $this->say('Что то пошло не так попробуйте еще раз!');
-                        return $this->ask_photo();
-
-                    } else {
-
-                        return $this->say('Все фото отчеты до сохранены');
-                    }
-                } catch (\Exception $e) {
-                    return $this->say($e->getMessage());
-                }
-
+                $this->say('Receives images:' . $this->bot->getMessage()->getImages());
             }
 
         }, function (Answer $answer) {

@@ -22,12 +22,10 @@ class AttendanceReports extends Model
 
     public static function store_report(Attendances $attendance, $file_url, $report_type)
     {
-//        AttendanceReports::updateOrCreate(['chat_id' => $botUser->getId()], [
-//            'chat_id' => $botUser->getId(),
-//            'name' => $botUser->getFirstName().' '.$botUser->getLastName(),
-//            'points' => $userPoints,
-//            'correct_answers' => $userCorrectAnswers,
-//        ]);
-
+        AttendanceReports::create([
+            'attendance_id' => $attendance->id,
+            'file_url' => $file_url,
+            'type' => $report_type,
+        ]);
     }
 }
