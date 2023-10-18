@@ -1,8 +1,6 @@
 <?php
 
-
 namespace App\Conversations;
-
 
 use App\Models\employees\AttendanceReports;
 use App\Models\employees\Attendances;
@@ -31,7 +29,7 @@ class LeaveConversation extends Conversation
         if($user)
         {
             $attendance = Attendances::where('employee_id', '=', $user->id)
-                ->where('leaving_date', '=', Carbon::now()->format('Y-m-d'))->first();
+                ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
 
             if (empty($attendance->leaving_date) and empty($attendance->leaving_time)){
 
@@ -43,7 +41,7 @@ class LeaveConversation extends Conversation
                     $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
 
                     $attendance = Attendances::where('employee_id', '=', $user->id)
-                        ->where('leaving_date', '=', Carbon::now()->format('Y-m-d'))->first();
+                        ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
                     $this->say($attendance);
 
                     return $this->attendance_leaving_location($attendance, $location);
@@ -66,7 +64,7 @@ class LeaveConversation extends Conversation
         try {
 
             $attendance = Attendances::where('employee_id', '=', $user->id)
-                ->where('leaving_date', '=', Carbon::now()->format('Y-m-d'))->first();
+                ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
 
             if (empty($attendance->leaving_date) and empty($attendance->leaving_time)){
 
@@ -92,7 +90,7 @@ class LeaveConversation extends Conversation
                         $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
 
                         $attendance = Attendances::where('employee_id', '=', $user->id)
-                            ->where('leaving_date', '=', Carbon::now()->format('Y-m-d'))->first();
+                            ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
                         $this->say($attendance);
 
                         return $this->attendance_leaving_location($attendance, $location);
@@ -106,7 +104,7 @@ class LeaveConversation extends Conversation
                     $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
 
                     $attendance = Attendances::where('employee_id', '=', $user->id)
-                        ->where('leaving_date', '=', Carbon::now()->format('Y-m-d'))->first();
+                        ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
                     $this->say($attendance);
 
                     return $this->attendance_leaving_location($attendance, $location);
@@ -182,7 +180,7 @@ class LeaveConversation extends Conversation
 
                     $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
                     $attendance = Attendances::where('employee_id', '=', $user->id)
-                        ->where('leaving_date', '=', Carbon::now()->format('Y-m-d'))->first();
+                        ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
 
                     return $this->set_video_after($attendance);
 
@@ -203,7 +201,7 @@ class LeaveConversation extends Conversation
 
                 $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
                 $attendance = Attendances::where('employee_id', '=', $user->id)
-                    ->where('leaving_date', '=', Carbon::now()->format('Y-m-d'))->first();
+                    ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
 
                 DB::beginTransaction();
 
@@ -229,5 +227,4 @@ class LeaveConversation extends Conversation
             $this->ask_photo();
         });
     }
-
 }

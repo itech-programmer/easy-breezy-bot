@@ -170,8 +170,8 @@ class ComingConversation extends Conversation
             ->addButtons([
                 Button::create('Фото')
                     ->value('foto'),
-                Button::create('Видео')
-                    ->value('video'),
+//                Button::create('Видео')
+//                    ->value('video'),
             ]);
 
         $this->ask($question, function (BotManAnswer $answer) {
@@ -185,11 +185,7 @@ class ComingConversation extends Conversation
 
                 case 'video':
 
-                    $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
-                    $attendance = Attendances::where('employee_id', '=', $user->id)
-                        ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
-
-                    return $this->set_video_before($attendance);
+                    return $this->ask_video();
 
                 default:
 
@@ -235,4 +231,39 @@ class ComingConversation extends Conversation
         });
     }
 
+    public function ask_video()
+    {
+
+        $this->askForVideos('Пожалуйста, пришлите видео отчет до', function ($videos) {
+
+            foreach ($videos as $video) {
+
+                $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
+                $attendance = Attendances::where('employee_id', '=', $user->id)
+                    ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
+
+                DB::beginTransaction();
+
+                $video_report = new AttendanceReports();
+                $video_report->attendance_id = $attendance->id;
+
+                $url = $video->getUrl(); // The direct url
+
+                $this->say(1 . ' - ' . 'Ссылки на ваши видео: ' . $url);
+
+                $video_report->file_url = $video->getUrl(); // The direct url
+                $video_report->type = 'before';
+                $video_report->save();
+                $video_report->toArray();
+
+                DB::commit();
+
+                $this->say('Receives videos:' . $this->bot->getMessage()->getImages());
+            }
+
+        }, function (Answer $answer) {
+            $this->say('Пожалуйста, пришлите видео отчет до');
+            $this->ask_video();
+        });
+    }
 }
