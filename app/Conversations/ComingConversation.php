@@ -56,7 +56,8 @@ class ComingConversation extends Conversation
 
             } else {
                 $this->say('Вы уже прошли проверку посещаемости');
-                return $this->ask_report();
+//                return $this->ask_report();
+                return $this->ask_photo();
             }
         }
         else
@@ -148,12 +149,14 @@ class ComingConversation extends Conversation
 
                 } else {
 
-                        return $this->ask_report();
+//                        return $this->ask_report();
+                        return $this->ask_photo();
                 }
 
             } else {
 
-                return $this->ask_report();
+//                return $this->ask_report();
+                return $this->ask_photo();
 
             }
 
@@ -249,7 +252,9 @@ class ComingConversation extends Conversation
 
                 $url = $video->getUrl(); // The direct url
 
-                $this->say(1 . ' - ' . 'Ссылки на ваши видео: ' . $url);
+//                $this->say(1 . ' - ' . 'Ссылки на ваши видео: ' . $url);
+
+                $report = $url;
 
                 $video_report->file_url = $video->getUrl(); // The direct url
                 $video_report->type = 'before';

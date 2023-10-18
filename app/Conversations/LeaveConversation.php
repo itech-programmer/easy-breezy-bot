@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\DB;
 
 class LeaveConversation extends Conversation
 {
+    /** @var integer */
+    protected $counter = 0;
 
     public function run()
     {
@@ -49,7 +51,8 @@ class LeaveConversation extends Conversation
 
             } else {
                 $this->say('Вы уже прошли проверку посещаемости');
-                return $this->ask_report();
+//                return $this->ask_report();
+                return $this->ask_photo();
             }
         }
         else
@@ -141,12 +144,14 @@ class LeaveConversation extends Conversation
 
                 } else {
 
-                    return $this->ask_report();
+//                return $this->ask_report();
+                    return $this->ask_photo();
                 }
 
             } else {
 
-                return $this->ask_report();
+//                return $this->ask_report();
+                return $this->ask_photo();
 
             }
 
@@ -194,7 +199,7 @@ class LeaveConversation extends Conversation
 
     public function ask_photo()
     {
-
+        $i = $this->counter+1;
         $this->askForImages('Пожалуйста, пришлите фото отчет после', function ($images) {
 
             foreach ($images as $image) {
@@ -210,7 +215,10 @@ class LeaveConversation extends Conversation
 
                 $url = $image->getUrl(); // The direct url
 
-                $this->bot->reply(1 . ' - ' . 'Ссылки на ваши изображения: ' . $url);
+//                $this->bot->reply(1 . ' - ' . 'Ссылки на ваши изображения: ' . $url);
+//                $this->counter = $images->count();
+
+                $report = $url;
 
                 $image_report->file_url = $image->getUrl(); // The direct url
                 $image_report->type = 'after';
@@ -220,6 +228,8 @@ class LeaveConversation extends Conversation
                 DB::commit();
 
                 $this->say('Receives images:' . $this->bot->getMessage()->getImages());
+
+//                $this->say(1 . ' - ' . 'изображения: ' . $this->counter += 1);
             }
 
         }, function (Answer $answer) {

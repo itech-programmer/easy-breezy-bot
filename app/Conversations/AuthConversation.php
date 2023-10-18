@@ -28,7 +28,7 @@ class AuthConversation extends Conversation
 
             if($user)
             {
-                if (empty($attendance->coming_date) and empty($attendance->coming_time)){
+                if (empty($attendance->coming_date) and empty($attendance->coming_time) and empty($attendance->coming_latitude) and empty($attendance->coming_longitude)){
 
                     $question = BotManQuestion::create('Добрый день ' . $user->full_name)
                         ->addButtons([
