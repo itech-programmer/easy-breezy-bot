@@ -21,30 +21,39 @@ class AuthConversation extends Conversation
 
         try {
 
-            $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
+            if (User::where('telegram_id', '=', $this->bot->getUser()->getId())->exists()) {
 
-            $attendance = Attendances::where('employee_id', '=', $user->id)
-                ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
+                $user = User::where('telegram_id', $this->bot->getUser()->getId())->first();
 
-            if($user)
-            {
+                $attendance = Attendances::where('employee_id', '=', $user->id)
+                    ->where('coming_date', '=', Carbon::now()->format('Y-m-d'))->first();
+
                 if (empty($attendance->coming_date) and empty($attendance->coming_time) and empty($attendance->coming_latitude) and empty($attendance->coming_longitude)){
 
                     $question = BotManQuestion::create('Добрый день ' . $user->full_name)
                         ->addButtons([
-                            Button::create('Keldim')
+                            Button::create('Келдим')
                                 ->value('keldim'),
-                            Button::create('Yordam')
+                            Button::create('Ёрдам')
                                 ->value('yordam'),
+                        ]);
+
+                } else if (empty($attendance->leaving_date) and empty($attendance->leaving_time) and empty($attendance->leaving_latitude) and empty($attendance->leaving_longitude)){
+
+                    $question = BotManQuestion::create('Добрый день ' . $user->full_name)
+                        ->addButtons([
+                            Button::create('Кетдим')
+                                ->value('ketdim'),
+                            Button::create('Ёрдам')
+                                ->value('yordam'),
+
                         ]);
 
                 } else {
 
                     $question = BotManQuestion::create('Добрый день ' . $user->full_name)
                         ->addButtons([
-                            Button::create('Ketdim')
-                                ->value('ketdim'),
-                            Button::create('Yordam')
+                            Button::create('Ёрдам')
                                 ->value('yordam'),
 
                         ]);
@@ -63,10 +72,36 @@ class AuthConversation extends Conversation
                             return $this->auth();
                     }
                 });
-            }
-            else
-            {
-                return $this->say('no ' . $this->bot->getUser()->getId());
+
+            } else {
+
+                $question = BotManQuestion::create('Салом ' . $this->bot->getUser()->getUsername())
+                    ->addButtons([
+                        Button::create('Буюртма бериш')
+                            ->value('order'),
+                        Button::create('Ёрдам')
+                            ->value('help'),
+                    ]);
+
+                $this->ask($question, function (BotManAnswer $answer) {
+                    switch ($answer->getValue()) {
+                        case 'order':
+                            return $this->bot->startConversation(new OrderConversation());
+                        case 'help':
+                            if (User::where('telegram_id', '=', $this->bot->getUser()->getId())->exists()) {
+
+                                return $this->bot->startConversation(new HelpConversation());
+
+                            } else {
+
+                                return $this->say('Easy Breezy');
+                            }
+
+                        default:
+                            return $this->auth();
+                    }
+                });
+
             }
 
         } catch (\Exception $e) {
@@ -74,7 +109,6 @@ class AuthConversation extends Conversation
             $this->say($e->getMessage());
 
         }
-
     }
 
 
