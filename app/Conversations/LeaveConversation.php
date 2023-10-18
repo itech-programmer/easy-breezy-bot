@@ -70,7 +70,7 @@ class LeaveConversation extends Conversation
 
                 DB::beginTransaction();
 
-                $employee_attendance = new Attendances();
+                $employee_attendance = Attendances::find($attendance->id);
                 $employee_attendance->employee_id = $user->id;
                 $employee_attendance->leaving_date = Carbon::now()->format('Y-m-d');
                 $employee_attendance->leaving_time = Carbon::now()->format('H:i:s');
@@ -163,8 +163,8 @@ class LeaveConversation extends Conversation
             ->addButtons([
                 Button::create('Фото')
                     ->value('foto'),
-                Button::create('Видео')
-                    ->value('video'),
+//                Button::create('Видео')
+//                    ->value('video'),
             ]);
 
         $this->ask($question, function (BotManAnswer $answer) {
@@ -210,7 +210,7 @@ class LeaveConversation extends Conversation
 
                 $url = $image->getUrl(); // The direct url
 
-                $this->say(1 . ' - ' . 'Ссылки на ваши изображения: ' . $url);
+                $this->bot->reply(1 . ' - ' . 'Ссылки на ваши изображения: ' . $url);
 
                 $image_report->file_url = $image->getUrl(); // The direct url
                 $image_report->type = 'after';
