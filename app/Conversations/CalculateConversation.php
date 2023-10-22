@@ -2,40 +2,82 @@
 
 namespace App\Conversations;
 
-use App\Models\Answers;
 use App\Models\AppSettings;
 use App\Models\Clients;
+use App\Models\employees\Attendances;
 use App\Models\services\Categories;
 use App\Models\services\Orders;
-use BotMan\BotMan\Messages\Attachments\Contact;
+use App\Models\User;
+use BotMan\BotMan\Messages\Attachments\Location;
 use BotMan\BotMan\Messages\Conversations\Conversation;
 use BotMan\BotMan\Messages\Incoming\Answer;
-use BotMan\BotMan\Messages\Incoming\IncomingMessage;
 use BotMan\BotMan\Messages\Outgoing\Actions\Button;
 use BotMan\BotMan\Messages\Outgoing\Question;
-use BotMan\BotMan\Messages\Outgoing\Question as BotManQuestion;
-use BotMan\Drivers\Telegram\Extensions\Keyboard;
-use BotMan\Drivers\Telegram\Extensions\KeyboardButton;
 use Carbon\Carbon;
+use Haruncpi\LaravelIdGenerator\IdGenerator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
-use function Brick\Math\sum;
-use function Brick\Math\toInt;
-use function Termwind\ask;
 
-class OrderConversation extends Conversation
+class CalculateConversation extends Conversation
 {
-    protected $rez = 0;
+
     /**
      * @inheritDoc
      */
     public function run()
     {
-        $this->choose_category();
+        $this->calculate();
     }
 
-    public function choose_category()
+
+    public function calculate()
     {
+
+        $this->ask('Отправте квадрат метр место чтобы рассчитать стоимость', function (Answer $response) {
+            $price = AppSettings::first();
+
+            if (is_numeric($response->getText())) {
+
+                if ($response->getText() != 0) {
+
+                       $meter = $response->getText();
+
+                       $rez = $price->price * $response->getText();
+
+                    $order = Question::create('🧾  ️ Стоимость будет составлять ' . $rez . ' Сум' . "\nПродолжит заказ ?")
+                        ->callbackId('accept')
+                        ->addButtons([
+                            Button::create('Да')->value('yes'),
+                            Button::create('Нет!')->value('no'),
+                        ]);
+
+                    $this->ask($order, function (Answer $answer)  use ($rez, $meter){
+                        // Detect if button was clicked:
+                        if ($answer->isInteractiveMessageReply()) {
+                            if ($answer->getValue() == 'yes') {
+                                $this->set_order($rez, $meter);
+                            } else {
+                                $this->say('Мы будем рады вас видеть еще !');
+                            }
+                        }
+                    });
+
+                } else {
+
+                    $this->calculate();
+
+                }
+
+            } else {
+                $this->calculate();
+            }
+
+        });
+
+    }
+
+    public function set_order($rez, $meter) {
+
         try {
 
             $categories = Categories::where('parent_id', null)->get();
@@ -49,7 +91,7 @@ class OrderConversation extends Conversation
                 ->callbackId('select_service')
                 ->addButtons($button_array);
 
-            $this->ask($services, function (Answer $answer) {
+            $this->ask($services, function (Answer $answer) use ($rez, $meter){
                 if ($answer->isInteractiveMessageReply()) {
                     $this->bot->userStorage()->save([
                         'service' => $answer->getValue(),
@@ -68,13 +110,13 @@ class OrderConversation extends Conversation
                         ->callbackId('select_service')
                         ->addButtons($button_arr);
 
-                    $this->ask($service, function (Answer $answer) {
+                    $this->ask($service, function (Answer $answer) use ($rez, $meter){
                         if ($answer->isInteractiveMessageReply()) {
                             $this->bot->userStorage()->save([
                                 'service' => $answer->getValue(),
                             ]);
 
-                            $this->calculate($answer->getText());
+                            $this->ask_address($answer->getValue(), $meter, $rez);
 
                         }
                     });
@@ -88,48 +130,19 @@ class OrderConversation extends Conversation
 
     }
 
-    public function calculate($category) {
-
-        $this->ask('Отправте квадрат метр место чтобы рассчитать стоимость', function (Answer $response) use ($category){
-            $price = AppSettings::first();
-
-            if (is_numeric($response->getText())) {
-
-                if ($response->getText() != 0) {
-
-                    $meter = $response->getText();
-
-                    $rez = $price->price * $response->getText();
-
-                    $this->ask_address($category, $meter, $rez);
-
-                } else {
-
-                    $this->calculate($category);
-
-                }
-
-            } else {
-                $this->calculate($category);
-            }
-
-        });
-
-    }
-
     public function ask_address($category, $meter, $sum) {
 
         $this->ask('Пожалуйста, пришлите адрес для уборки', function (Answer $response) use ($category, $meter, $sum) {
 
             $address = $response->getText();
 
-            $this->set_order($category, $meter, $sum, $address);
+            $this->store($category, $meter, $sum, $address);
 
         });
 
     }
 
-    public function set_order($category, $meter, $sum, $address) {
+    public function store($category, $meter, $sum, $address) {
 
         try {
 
@@ -181,16 +194,5 @@ class OrderConversation extends Conversation
             $generate_order_id = 'EBO-' . str_pad(1, 8, "0", STR_PAD_LEFT);
         }
         return $generate_order_id;
-    }
-
-    public function keyboard()
-    {
-        return Keyboard::create()
-            ->addRow(KeyboardButton::create('📱 Отправить свой номер')->requestContact())
-            ->addRow(KeyboardButton::create('📍 Отправить локацию')->requestLocation())
-            ->type(Keyboard::TYPE_KEYBOARD)
-            ->oneTimeKeyboard()
-            ->resizeKeyboard()
-            ->toArray();
     }
 }

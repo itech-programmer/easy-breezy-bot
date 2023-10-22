@@ -37,9 +37,7 @@
             @endif
 
             <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
-                @foreach($data as $user)
-                    {{ $user->telegram_id }}
-                @endforeach
+                    {{ $data }} <br>
             </div>
         </div>
     </body>

@@ -79,6 +79,8 @@ class AuthConversation extends Conversation
                     ->addButtons([
                         Button::create('Буюртма бериш')
                             ->value('order'),
+                        Button::create('Хисоблаш')
+                            ->value('calculate'),
                         Button::create('Ёрдам')
                             ->value('help'),
                     ]);
@@ -87,6 +89,8 @@ class AuthConversation extends Conversation
                     switch ($answer->getValue()) {
                         case 'order':
                             return $this->bot->startConversation(new OrderConversation());
+                        case 'calculate':
+                            return $this->bot->startConversation(new CalculateConversation());
                         case 'help':
                             if (User::where('telegram_id', '=', $this->bot->getUser()->getId())->exists()) {
 

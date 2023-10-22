@@ -10,6 +10,7 @@
         "botman/driver-telegram": "^2.0",
         "botman/driver-web": "^1.5",
         "guzzlehttp/guzzle": "^7.2",
+        "haruncpi/laravel-id-generator": "^1.1",
         "laravel/framework": "^9.19",
         "laravel/sanctum": "^3.0",
         "laravel/tinker": "^2.7"

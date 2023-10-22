@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\services\Categories;
 use App\Models\User;
+use Haruncpi\LaravelIdGenerator\IdGenerator;
 
 class HomeController extends Controller
 {
@@ -11,7 +12,8 @@ class HomeController extends Controller
 
         try {
 
-            $data = Categories::where('parent_id', null)->get();
+            $data = IdGenerator::generate(['table' => 'orders', 'field'=>'order_id', 'length' => 10, 'prefix' =>date("EBO-")]);
+            //output: EBO-00001
             return view('welcome', compact('data'));
 
         } catch (\Exception $e) {
